@@ -4,6 +4,14 @@
 
 set -e
 
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+ORANGE='\033[38;2;223;121;29m'
+NC='\033[0m' # No Color
+
 gum style \
 	--foreground 212 --border-foreground 212 --border double \
 	--margin "1 2" --padding "2 4" \
@@ -28,7 +36,9 @@ rm -f .env
 
 kind delete cluster
 
-kind create cluster
+kind create cluster --config kind.yaml
+kubectl apply \
+    --filename https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 
 ##############
 # Crossplane #
@@ -108,3 +118,13 @@ else
         | tee azure-creds.json
 
 fi
+
+##############
+# Crossplane #
+##############
+
+helm upgrade --install argocd argo/argo-cd \
+    --namespace argocd --create-namespace \
+    --values argocd/values.yaml --wait
+
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d | xargs -I{} echo "${YELLOW}{}${NC}"
